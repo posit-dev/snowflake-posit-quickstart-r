@@ -687,9 +687,8 @@ We've prepared an example Shiny app in the directory:
 <!-- TODO: update image -->
 ![](assets/shiny/shiny.png)
 
-To run the app, open `app.R` and then click the Run button at the top of the script in the RStudio Pro IDE.
+To run the app, open `app.R` and then click the Run App button at the top of the script in the RStudio Pro IDE.
 
-<!-- TODO: create image -->
 ![](assets/shiny/run.png)
 
 To use the app, update the domains and date range in the sidebar. The app will respond automatically by updating its plot, table, and value boxes.
