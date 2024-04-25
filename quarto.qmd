@@ -111,7 +111,7 @@ timeseries |>
 ## Compare Metrics in a Table with `{gt}`
 
 Here we compare page views, number of users, and number of sessions
-across all our selected domains.
+across all our selected domains, again highlighting airbnb.com and vrbo.com.
 
 ```{r}
 comparison <-
@@ -136,6 +136,14 @@ comparison |>
     avg_pageviews = "Pageviews",
     avg_users = "Users",
     avg_sessions = "Sessions"
+  ) |> 
+  gt_highlight_rows(
+    rows = (domain_id == "airbnb.com"), 
+    fill = "#ffce67"
+  ) |> 
+  gt_highlight_rows(
+    rows = (domain_id == "vrbo.com"), 
+    fill = "#78c2ad"
   )
 ```
 
