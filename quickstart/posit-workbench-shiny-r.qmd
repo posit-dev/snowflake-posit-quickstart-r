@@ -96,13 +96,15 @@ We can then start our data exploration using Posit Workbench.
 You can find Posit Workbench as a Snowflake Native Application,
 and use it to connect to your database.
 
-### Step 1: Native Applications: Posit Workbench
+### Step 1: Navigate to Apps
 
-TODO: find screenshot of Posit Workbench Native Applications
+In your Snowflake account, Go to `Data Products` > `Apps` to open the Native Apps collection.
 
-### Step 2: Find the Native Application
+![](assets/snowflake/05-apps.png)
 
-TODO: find other steps on getting workbench in snowflake
+### Step 2: Open the Posit Workbench Native App
+
+Click the Open button next to the Posit Workbench app. If you do not see the Posit Workbench app listed, ask you Snowflake account administrator for access to the app.
 
 ## Create an RStudio Pro Session
 
@@ -116,17 +118,19 @@ Within Posit Workbench, you can launch a new session to spin up your coding envi
 
 ### Step 2: Select an IDE 
 
-When prompted, select the RStudio Pro IDE
+When prompted, select the RStudio Pro IDE.
 
 <!-- TODO: screen shot in snowflake native apps needed -->
-![](assets/posit_workbench/02-create_new_session_snowflake.png).
+![](assets/posit_workbench/02-create_new_session_snowflake.png)
 
 
 ### Step 3: Log into your Snowflake account
 
-When you start a new session, you also have the ability to connect to your Snowflake account.
+Next, connect to your Snowflake account from within Posit Workbench.
 Click on `Sign In` in the Snowflake section,
 and follow the sign in prompts.
+
+![](assets/posit_workbench/03-snowflake-authentication.png).
 
 ### Step 4: Launch the RStudio Pro IDE
 
