@@ -1,6 +1,7 @@
 library(DBI)
 library(odbc)
 library(dbplyr)
+library(dplyr)
 
 # DATABASE CONNECTION ----
 # Connect to the database
