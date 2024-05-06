@@ -24,6 +24,7 @@ library(tidyverse)
 library(DBI)
 library(dbplyr)
 library(gt)
+library(gtExtras)
 library(odbc)
 
 # Connect to the database
