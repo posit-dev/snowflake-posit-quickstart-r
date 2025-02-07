@@ -5,15 +5,13 @@ library(dplyr)
 
 # DATABASE CONNECTION ----
 # Connect to the database
-conn <- 
+conn <-
   DBI::dbConnect(
-    odbc::snowflake(), 
-    warehouse = "DEVREL_WH_LARGE",
-    database = "WEB_TRAFFIC_FOUNDATION_EXPERIMENTAL",
-    schema = "CYBERSYN"
+    odbc::snowflake(),
+    warehouse = "DEFAULT_WH",
+    database = "HEART_FAILURE",
+    schema = "PUBLIC"
   )
 
-# TABLES ----
-attributes <- tbl(conn, "WEBTRAFFIC_SYNDICATE_ATTRIBUTES")
-domains <- tbl(conn, "COMPANY_DOMAIN_RELATIONSHIPS")
-timeseries <- tbl(conn, "WEBTRAFFIC_SYNDICATE_TIMESERIES")
+# TABLE ----
+heart_failure <- tbl(conn, "HEART_FAILURE") |> rename_with(str_to_lower)

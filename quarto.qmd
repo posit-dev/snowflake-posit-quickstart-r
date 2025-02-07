@@ -1,5 +1,5 @@
 ---
-title: "Web traffic"
+title: "Heart failure survival"
 format: html
 editor_options: 
   chunk_output_type: console
@@ -9,15 +9,11 @@ execute:
   error: false
 ---
 
-This report uses the
-[Cybersyn Web Traffic Foundation](https://app.snowflake.com/marketplace/listing/GZTSZ290BUX5L/cybersyn-web-traffic-foundation-experimental)
-data to compare web traffic metrics between a select domains.
+This report uses the [Heart Failure Clinical Records](https://archive.ics.uci.edu/dataset/519/heart+failure+clinical+records) dataset to compare clinical metrics across patient groups, focusing on younger patients' survival outcomes and diabetes status.
 
 ## Connect to Data
 
-We start by connecting to the `CYBERSYN` schema in snowflake,
-filtering the domains,
-and tidying the data.
+We start by connecting to the `HEART_FAILURE` database in Snowflake, standardizing column names, and filtering to our age range of interest.
 
 ```{r}
 library(tidyverse)
@@ -31,174 +27,95 @@ library(odbc)
 conn <-
   DBI::dbConnect(
     odbc::snowflake(),
-    warehouse = "DEVREL_WH_LARGE",
-    database = "WEB_TRAFFIC_FOUNDATION_EXPERIMENTAL",
-    schema = "CYBERSYN"
+    warehouse = "DEFAULT_WH",
+    database = "HEART_FAILURE",
+    schema = "PUBLIC"
   )
 
-# connect to tables/views
-timeseries <- tbl(conn, "WEBTRAFFIC_SYNDICATE_TIMESERIES")
-attributes <- tbl(conn, "WEBTRAFFIC_SYNDICATE_ATTRIBUTES")
+# Connect to table
+heart_failure <- tbl(conn, "HEART_FAILURE")
 
 # Standardize column names
-timeseries <- timeseries |> rename_with(str_to_lower)
-attributes <- attributes |> rename_with(str_to_lower)
-
-# Join to make complete table
-timeseries <-
-  timeseries |>
-  left_join(
-    attributes,
-    by = join_by(variable, variable_name)
-  )
-```
-
-```{r}
-top_domains <-
-  c(
-    "youtube.com",
-    "google.com",
-    "facebook.com",
-    "tiktok.com",
-    "instagram.com",
-    "airbnb.com",
-    "vrbo.com",
-    "lyft.com",
-    "uber.com"
-  )
-
-timeseries <-
-  timeseries |>
-  filter(domain_id %in% top_domains) |>
-  select(domain_id, date, measure, value)
-```
-
-```{r}
-timeseries <-
-  timeseries |>
-  pivot_wider(names_from = measure, values_from = value) |>
+heart_failure <- 
+  heart_failure |> 
   rename_with(str_to_lower)
 ```
 
-The resulting `timeseries` data will look like this:
-
 ```{r}
-timeseries
+heart_failure <-
+  heart_failure |> 
+  filter(age < 50) |> 
+  select(age, diabetes, serum_sodium, serum_creatinine, sex, death_event)
 ```
 
+### Age Distribution by Diabetes Status and Survival
 
-## Visualize Page Views with `{ggplot2}`
-
-Here we will compare the page views between `airbnb.com` and `vrbo.com`.
+The box plot below illustrates the distribution of ages among heart failure patients, grouped by diabetes status and survival outcome (0 = Survived, 1 = Died).
 
 ```{r}
-domains <- c("airbnb.com", "vrbo.com")
-
-timeseries |>
-  filter(domain_id %in% domains) |>
-  ggplot(aes(date, pageviews, color = domain_id)) +
-  geom_line() +
-  scale_y_log10() +
-  theme_minimal() +
-  theme(legend.position = "bottom") +
+heart_failure |> 
+  mutate(
+    death_event = as.character(death_event), 
+    diabetes = as.character(diabetes)
+  ) |> 
+  ggplot(aes(y = serum_sodium, color = diabetes, x = death_event)) +
+  geom_boxplot() +
   labs(
-    x = "",
-    y = "",
-    color = "",
-    title = "Pageviews"
-  )
+    title = "Serum Sodium Levels by Diabetes Status and Survival Outcome",
+    x = "Survival Outcome (0 = Survived, 1 = Died)",
+    y = "Serum Sodium (mEq/L)",
+    color = "Diabetes"
+  ) +
+  theme(legend.position = "bottom")
 ```
 
 ## Compare Metrics in a Table with `{gt}`
 
-Here we compare page views, number of users, and number of sessions
-across all our selected domains, again highlighting airbnb.com and vrbo.com.
+In the table below, we compare clinical metrics across patient groups categorized by survival outcome ("Survived" or "Died") and diabetes status ("Yes" or "No"). This breakdown provides insights into how these clinical characteristics differ based on patient health conditions.
 
 ```{r}
-comparison <-
-  timeseries |>
-  group_by(domain_id) |>
+comparison <- 
+  heart_failure |> 
+  group_by(death_event, diabetes) |> 
   summarize(
-    across(
-      c("pageviews", "users", "sessions"),
-      \(x) median(x, na.rm = TRUE),
-      .names = "avg_{.col}"
-    ),
+    median_age = median(age, na.rm = TRUE),
+    median_serum_creatinine = median(serum_creatinine, na.rm = TRUE),
+    median_serum_sodium = median(serum_sodium, na.rm = TRUE),
     .groups = "drop"
-  )  |>
-  arrange(desc(avg_pageviews))
-```
-
-```{r}
-comparison |>
-  gt(rowname_col = "domain_id") |>
-  fmt_number(scale_by = 1e-6) |>
-  cols_label(
-    avg_pageviews = "Pageviews",
-    avg_users = "Users",
-    avg_sessions = "Sessions"
-  ) |> 
-  gt_highlight_rows(
-    rows = (domain_id == "airbnb.com"), 
-    fill = "#ffce67"
-  ) |> 
-  gt_highlight_rows(
-    rows = (domain_id == "vrbo.com"), 
-    fill = "#78c2ad"
   )
 ```
 
-## Marketing
-
-There are 2 main ratios used in marketing:
-
-- content engagement: page views to users
-- repeat rates and website usage: sessions to users
-
-We also calculate the page views per session for all our domains.
-
 ```{r}
-marketing <- timeseries |>
+comparison |> 
   mutate(
-    pageviews_per_user = pageviews / users, # content engagement
-    sessions_per_user = sessions / users, # repeat rates and website
-    pageviews_per_session = pageviews / sessions
-  ) |>
-  select(-pageviews, -users, -sessions) |>
-  pivot_longer(
-    c(pageviews_per_user, sessions_per_user, pageviews_per_session)
+    death_event = case_when(
+      death_event == 1 ~ "Died",
+      death_event == 0 ~ "Survived"
+    ),
+    diabetes = case_when(
+      diabetes == 1 ~ "Yes",
+      diabetes == 0 ~ "No"
+    )
+  ) |> 
+  arrange(desc(death_event), desc(diabetes)) |> 
+  gt(rowname_col = "death_event") |> 
+  fmt_number(decimals = 1) |> 
+  cols_label(
+    diabetes = "Diabetes Status",
+    median_age = "Median Age",
+    median_serum_creatinine = "Median Serum Creatinine (mg/dL)",
+    median_serum_sodium = "Median Serum Sodium (mEq/L)"
+  ) |> 
+  tab_header(
+    title = "Clinical Metrics by Survival Outcome and Diabetes Status"
+  ) |> 
+  data_color(
+    columns = c(median_serum_creatinine, median_serum_sodium),
+    palette = "Blues"
+  ) |> 
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_row_groups(groups = everything())
   )
 ```
 
-```{r}
-marketing |>
-  ggplot() +
-  geom_line(aes(x = date, y = value, color = name)) +
-  facet_wrap(vars(domain_id), scales = "free_y") +
-  labs(
-    title = "Marketing Metric Ratios Over Time"
-  ) +
-  scale_color_manual(
-    breaks = c(
-      "pageviews_per_session",
-      "pageviews_per_user",
-      "sessions_per_user"
-    ),
-    labels = c(
-      'Views / Session',
-      "Content Engagement (views/user)",
-      "Repeats and Usage (sessions/user)"
-    ),
-    values = c('#1b9e77', '#d95f02', '#7570b3')
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank()
-    ) +
-  guides(
-    color = guide_legend(ncol = 2, nrow = 2, byrow = TRUE)
-  )
-```
